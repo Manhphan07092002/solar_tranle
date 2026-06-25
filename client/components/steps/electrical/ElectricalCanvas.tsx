@@ -2,6 +2,7 @@ import React from 'react';
 import { AlertCircle, Clipboard } from 'lucide-react';
 import { DesignState, PVString, LatLngPoint } from '../../../types';
 import { ActiveTool, DraggingIcon, ModuleRenderContext } from './types';
+import ProjectStatsFooter from '../../ProjectStatsFooter';
 
 interface ElectricalCanvasProps {
     designData: DesignState;
@@ -440,6 +441,8 @@ export default function ElectricalCanvas({
                     })}
                 </div>
             </div>
+            
+            <ProjectStatsFooter designData={designData} />
         </div>
     );
 }

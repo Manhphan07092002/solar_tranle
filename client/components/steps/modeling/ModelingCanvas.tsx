@@ -3,6 +3,7 @@ import { Grid, Ruler, Focus, RotateCcw, Move3d, Plus, Minus, Hand, Navigation } 
 import { DesignState } from '../../../types';
 import WorldViewport from './WorldViewport';
 import { ActiveTool, MapLayer } from './types';
+import ProjectStatsFooter from '../../ProjectStatsFooter';
 
 
 interface ModelingCanvasProps {
@@ -176,10 +177,12 @@ export default function ModelingCanvas({
             </div>
 
             {isDrawing && points.length >= 3 && (
-                <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-in slide-in-from-bottom-4 z-40">
+                <div className="absolute bottom-24 left-1/2 -translate-x-1/2 animate-in slide-in-from-bottom-4 z-40">
                     <button onClick={handleFinishPoly} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full font-semibold shadow-lg">Finish Shape</button>
                 </div>
             )}
+            
+            <ProjectStatsFooter designData={designData} />
         </div>
     );
 }

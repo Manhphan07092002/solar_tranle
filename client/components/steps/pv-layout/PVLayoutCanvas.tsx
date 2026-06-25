@@ -6,6 +6,7 @@ import { isPointInPolygon } from '../../../utils/helpers';
 import { calculateSunPosition, isModuleShaded, calculateShadowPolygons, SceneObject, calculateRidgeLine } from '../../../utils/geometry/polygonUtils';
 import { calculateRoofStructureLines } from '../../../utils/geometry/roofGeometry';
 import { ActiveTool, PreviewPlacement, ClipboardEntry, SelectionBox, ViewState } from './types';
+import ProjectStatsFooter from '../../ProjectStatsFooter';
 
 interface Props {
     designData: DesignState;
@@ -309,7 +310,7 @@ export default function PVLayoutCanvas({
                 </div>
 
                 {/* Zoom Controls */}
-                <div className="absolute bottom-4 right-4 flex bg-white rounded shadow-md flex-col overflow-hidden">
+                <div className="absolute bottom-4 right-4 flex bg-white rounded shadow-md flex-col overflow-hidden z-50">
                     <button onClick={onZoomIn} className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 border-b border-slate-100" title="Zoom In">
                         <ZoomIn size={18} />
                     </button>
@@ -317,6 +318,8 @@ export default function PVLayoutCanvas({
                         <ZoomOut size={18} />
                     </button>
                 </div>
+                
+                <ProjectStatsFooter designData={designData} />
             </div>
         </div>
     );
