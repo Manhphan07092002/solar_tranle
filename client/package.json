@@ -1,0 +1,34 @@
+{
+  "name": "solaredge-clone-client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "1.33.0",
+    "@turf/turf": "^7.3.4",
+    "clipper-lib": "^6.4.2",
+    "earcut": "^3.0.2",
+    "lucide-react": "0.344.0",
+    "pigeon-maps": "^0.22.1",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "recharts": "2.12.2",
+    "simplify-js": "^1.2.4",
+    "solaredge-clone-monorepo": "file:..",
+    "straight-skeleton": "^2.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.23",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.18",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}

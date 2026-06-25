@@ -1,0 +1,10 @@
+﻿components/steps/modeling/ModelingCanvas.tsx(4,27): error TS2307: Cannot find module './WorldViewport' or its corresponding type declarations.
+components/steps/modeling/useModeling.tsx(2,80): error TS2307: Cannot find module '../../types' or its corresponding type declarations.
+components/steps/modeling/useModeling.tsx(4,65): error TS2307: Cannot find module '../../utils/mapUtils' or its corresponding type declarations.
+components/steps/modeling/useModeling.tsx(5,133): error TS2307: Cannot find module '../../utils/geometry/polygonUtils' or its corresponding type declarations.
+components/steps/modeling/useModeling.tsx(6,45): error TS2307: Cannot find module '../../utils/geometry/roofGeometry' or its corresponding type declarations.
+components/steps/modeling/useModeling.tsx(7,49): error TS2307: Cannot find module '../../utils/helpers' or its corresponding type declarations.
+components/steps/modeling/useModeling.tsx(8,27): error TS2307: Cannot find module './WorldViewport' or its corresponding type declarations.
+components/steps/modeling/useModeling.tsx(2343,5): error TS18004: No value exists in scope for the shorthand property 'handleSelectAll'. Either declare one or provide an initializer.
+components/steps/modeling/useModeling.tsx(2343,22): error TS2552: Cannot find name 'handleDelete'. Did you mean 'handleBulkDelete'?
+components/steps/modeling/useModeling.tsx(2343,54): error TS18004: No value exists in scope for the shorthand property 'handleSplitRoof'. Either declare one or provide an initializer.

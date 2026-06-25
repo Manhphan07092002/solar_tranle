@@ -1,0 +1,7 @@
+{
+  "name": "SolarEdge Clone - PV Designer",
+  "description": "A comprehensive SaaS platform for designing commercial and residential solar PV systems. Features project management, site modeling, PV placement, electrical validation, and financial analysis.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
