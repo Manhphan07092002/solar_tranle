@@ -83,7 +83,7 @@ export default function PVLayoutCanvas({
             >
                 {/* Satellite base map */}
                 <div className="absolute inset-0 pointer-events-none z-0 opacity-80">
-                    <SatelliteMap center={viewState.center} zoom={viewState.zoom} interactive={false} />
+                    <SatelliteMap center={viewState.center} zoom={viewState.zoom} interactive={false} width={900} height={900} />
                 </div>
 
                 {/* SVG Layer: Roofs + Structure Lines + Shadows */}

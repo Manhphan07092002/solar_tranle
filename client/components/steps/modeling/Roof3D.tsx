@@ -1,6 +1,7 @@
 import React from 'react';
 import { calculateRoofStructureLines } from '../../../utils/geometry/roofGeometry';
 import { calculateRidgeLine } from '../../../utils/geometry/polygonUtils';
+import { isPointInPolygon } from '../../../utils/helpers';
 
 interface Roof3DProps {
     roof: any;
@@ -21,6 +22,7 @@ interface Roof3DProps {
     renderAreaLabel: (screenPts: { x: number, y: number }[], isActive: boolean) => React.ReactNode;
     renderPolygonPoints: (id: string, screenPts: { x: number, y: number }[], color: string) => React.ReactNode;
     showDimensions: boolean;
+    modulesToRender?: { px: number, py: number, azimuth: number, widthPx: number, heightPx: number, color?: string }[];
 }
 
 const getRoofColors = (_shape: string) => ({
@@ -33,7 +35,7 @@ const getRoofColors = (_shape: string) => ({
 
 const Roof3D: React.FC<Roof3DProps> = ({
     roof, screenPoints, structureLines: passedStructureLines, isSelected, baseHeightPx, heightPx, layers, layerStep, roofHeight, activeTool, editRoofShapeMode,
-    onObjectClick, renderRidgeLine, renderEdgeLabels, renderAngleLabels, renderAreaLabel, renderPolygonPoints, showDimensions
+    onObjectClick, renderRidgeLine, renderEdgeLabels, renderAngleLabels, renderAreaLabel, renderPolygonPoints, showDimensions, modulesToRender
 }) => {
     const shape = roof.shape || 'gable';
     const ridge = calculateRidgeLine(screenPoints, shape, roof.ridgeAngle, roof.ridgeDirection);
@@ -271,6 +273,26 @@ const Roof3D: React.FC<Roof3DProps> = ({
                 const lightness = 72 + lightIntensity * 22;
                 const faceColor = `hsl(102, 35%, ${lightness}%)`;
 
+                // Find modules on this face
+                // We use the exact 2D footprint of the face to check if a module is inside.
+                const ridge = visualRidge || { start: {x: 0, y: 0}, end: {x: 0, y: 0} };
+                const peakP_ = getClosestPointOnSegment(p, ridge.start, ridge.end);
+                const peakNext_ = getClosestPointOnSegment(next, ridge.start, ridge.end);
+                const facePolygon = [p, next, peakNext_, peakP_];
+                
+                const faceModules = modulesToRender?.filter(m => isPointInPolygon({ x: m.px, y: m.py }, facePolygon)) || [];
+
+                // Calculate the geometry required for the 3D unrolled slope
+                const dxP = peakP.x - p.x;
+                const dyP = peakP.y - p.y;
+                const depthP_ = Math.sqrt(dxP * dxP + dyP * dyP);
+                const signedDepthP_ = (dxP * Math.sin(angleZ) - dyP * Math.cos(angleZ));
+
+                const dxNext_ = peakNext.x - next.x;
+                const dyNext_ = peakNext.y - next.y;
+                const depthNext_ = Math.sqrt(dxNext_ * dxNext_ + dyNext_ * dyNext_);
+                const signedDepthNext_ = (dxNext_ * Math.sin(angleZ) - dyNext_ * Math.cos(angleZ));
+
                 // Tilt
                 const faceTilt = roof.faceTilts?.[i] !== undefined ? roof.faceTilts[i] : (roof.tilt || 20);
                 const clampedTilt = Math.min(75, Math.max(1, faceTilt));
@@ -281,18 +303,20 @@ const Roof3D: React.FC<Roof3DProps> = ({
                 const slantP = depthP / cosTheta;
                 const slantNext = depthNext / cosTheta;
 
-                // Draw the surface folded INWARD and UPWARD properly regardless of CW/CCW polygon rotation.
-                // Local Y axis points RIGHT of the edge. `signedDepth` is positive when peak is on the RIGHT.
+                // Local Y axis points RIGHT of the edge
                 const yLocalP = signedDepthP / cosTheta;
                 const yLocalNext = signedDepthNext / cosTheta;
 
-                const A = { x: 0, y: 0 };
-                const B = { x: edgeLen, y: 0 };
-                const C = { x: xNext, y: yLocalNext };
-                const D = { x: xP, y: yLocalP };
-
                 const rotSign = (yLocalP + yLocalNext) >= 0 ? 1 : -1;
                 const rotateXAngle = rotSign * clampedTilt;
+
+                const xP_ = dxP * Math.cos(-angleZ) - dyP * Math.sin(-angleZ);
+                const xNext_ = edgeLen + dxNext_ * Math.cos(-angleZ) - dyNext_ * Math.sin(-angleZ);
+
+                const A = { x: 0, y: 0 };
+                const B = { x: edgeLen, y: 0 };
+                const C = { x: xNext_, y: yLocalNext };
+                const D = { x: xP_, y: yLocalP };
 
                 // LOGGING INJECTED: Identify why the top is flat. 
                 if (shape === 'hip' || shape === 'mái Nhật') { // Target the known buggy shapes
@@ -406,6 +430,33 @@ const Roof3D: React.FC<Roof3DProps> = ({
                                 })()
                             )}
                         </svg>
+
+                        {/* 3D PV Modules Rendered ON the slope */}
+                        {faceModules.map((mod, mIdx) => {
+                            // Compute local coordinate relative to edge start p
+                            const dx = mod.px - p.x;
+                            const dy = mod.py - p.y;
+                            // Reverse the angleZ rotation to find coordinates on the un-tilted face plane
+                            const lx = dx * Math.cos(angleZ) + dy * Math.sin(angleZ);
+                            const ly2D = -dx * Math.sin(angleZ) + dy * Math.cos(angleZ);
+                            // Unroll the Y coordinate up the slope
+                            const ly = ly2D / cosTheta;
+
+                            return (
+                                <div key={`mod-${mIdx}`} style={{
+                                    position: 'absolute',
+                                    left: lx, top: ly,
+                                    width: mod.widthPx, height: mod.heightPx,
+                                    marginLeft: -mod.widthPx / 2, marginTop: -mod.heightPx / 2,
+                                    transform: `rotateZ(${mod.azimuth - angleZ}rad) translateZ(${rotSign > 0 ? 2 : -2}px)`,
+                                    backgroundColor: mod.color || '#1e3a8a',
+                                    border: '1px solid rgba(255,255,255,0.4)',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                                    opacity: 0.95,
+                                    pointerEvents: 'none'
+                                }} />
+                            );
+                        })}
                     </div>
                 );
             })}
@@ -444,6 +495,22 @@ const Roof3D: React.FC<Roof3DProps> = ({
                         {renderAreaLabel(screenPoints, isSelected)}
                     </g>
                 </svg>
+
+                {/* Flat roof modules */}
+                {shape === 'flat' && modulesToRender?.map((mod, mIdx) => (
+                    <div key={`flat-mod-${mIdx}`} style={{
+                        position: 'absolute',
+                        left: mod.px, top: mod.py,
+                        width: mod.widthPx, height: mod.heightPx,
+                        marginLeft: -mod.widthPx / 2, marginTop: -mod.heightPx / 2,
+                        transform: `rotateZ(${mod.azimuth}rad) translateZ(1px)`,
+                        backgroundColor: mod.color || '#1e3a8a',
+                        border: '1px solid rgba(255,255,255,0.4)',
+                        boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        opacity: 0.95,
+                        pointerEvents: 'none'
+                    }} />
+                ))}
             </div>
 
             {/* Points layer */}

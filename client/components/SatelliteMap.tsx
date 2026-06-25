@@ -10,6 +10,8 @@ interface SatelliteMapProps {
   markerPosition?: { lat: number; lng: number } | null;
   provider?: (x: number, y: number, z: number, dpr?: number) => string;
   staticImageUrl?: string;
+  width?: number;
+  height?: number;
 }
 
 // Google Satellite tile provider
@@ -57,7 +59,9 @@ function SatelliteMap({
   showMarker = false,
   markerPosition,
   provider = googleSatelliteProvider,
-  staticImageUrl
+  staticImageUrl,
+  width,
+  height
 }: SatelliteMapProps) {
   // Local state
   const [mapCenter, setMapCenter] = useState<[number, number]>([center.lat, center.lng]);
@@ -83,8 +87,10 @@ function SatelliteMap({
   }, [debouncedOnMoveEnd, mapZoom]);
 
   return (
-    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
+    <div style={{ height: height ? `${height}px` : '100%', width: width ? `${width}px` : '100%', position: 'relative' }}>
       <Map
+        width={width}
+        height={height}
         center={mapCenter}
         zoom={mapZoom}
         onBoundsChanged={handleBoundsChange}

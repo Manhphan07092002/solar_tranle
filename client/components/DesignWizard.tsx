@@ -8,6 +8,7 @@ import StepConsumption from './steps/StepConsumption';
 import StepModeling from './steps/StepModeling';
 import StepPVLayout from './steps/StepPVLayout';
 import StepElectrical from './steps/StepElectrical';
+import StepSummary from './steps/summary/StepSummary';
 
 // Lazy load heavy connection step (includes Recharts)
 const StepFinancial = lazy(() => import('./steps/StepFinancial'));
@@ -18,7 +19,7 @@ interface DesignWizardProps {
     onSave: (designData: DesignState) => Promise<void>;
 }
 
-const STEPS = ['Map & Basics', 'Consumption', 'Modeling', 'PV Layout', 'Electrical', 'Financial'];
+const STEPS = ['Map & Basics', 'Consumption', 'Modeling', 'PV Layout', 'Electrical', 'Summary', 'Financial'];
 
 export default function DesignWizard({ project, onFinish, onSave }: DesignWizardProps) {
     // Restore currentStep from localStorage on mount
@@ -277,12 +278,21 @@ export default function DesignWizard({ project, onFinish, onSave }: DesignWizard
             case 1: return <StepConsumption designData={designData} setDesignData={setDesignData} />;
             case 2: return <StepModeling designData={designData} setDesignData={setDesignData} />;
             case 3: return <StepPVLayout designData={designData} setDesignData={setDesignData} />;
-            case 4: return <StepElectrical designData={designData} setDesignData={setDesignData} />;
-            case 5: return (
-                <Suspense fallback={<div className="h-full flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-blue-600" size={32} /></div>}>
-                    <StepFinancial designData={designData} setDesignData={setDesignData} />
-                </Suspense>
-            );
+            case 4:
+                return <StepElectrical designData={designData} setDesignData={setDesignData} />;
+            case 5:
+                return <StepSummary designData={designData} setDesignData={setDesignData} />;
+            case 6:
+                return (
+                    <Suspense fallback={
+                        <div className="flex-1 flex flex-col items-center justify-center bg-slate-50">
+                            <Loader2 className="animate-spin text-blue-500 mb-4" size={32} />
+                            <p className="text-slate-500 font-medium">Loading financial models...</p>
+                        </div>
+                    }>
+                        <StepFinancial designData={designData} setDesignData={setDesignData} />
+                    </Suspense>
+                );
             default: return null;
         }
     }, [currentStep, project, designData, setDesignData]);

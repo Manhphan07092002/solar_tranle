@@ -49,6 +49,8 @@ interface WorldViewportProps {
     onSkeletonNodeDoubleClick?: (id: string, index: number, e: React.MouseEvent) => void;
     onSkeletonEdgeDoubleClick?: (id: string, index: number, p1: { x: number, y: number }, p2: { x: number, y: number }, e: React.MouseEvent) => void;
     onContextMenu?: (type: 'roof' | 'canvas' | 'obstruction', id: string | null, e: React.MouseEvent) => void;
+    children?: React.ReactNode;
+    pvModules?: { roofId: string, px: number, py: number, azimuth: number, widthPx: number, heightPx: number, color?: string, stringId?: string }[];
 }
 
 const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
@@ -57,7 +59,7 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
     measurementMode, isDrawing, measurementPoints, points, previewPoint, snapCursor, snapTarget,
     selectedId, selectedIds = new Set(), roofHeight3D, currentLayer, activeTool, editRoofShapeMode = false,
     onCanvasClick, onCanvasMouseDown, onCanvasMouseMove, onCanvasMouseUp, onObjectClick, onPointMouseDown,
-    onEdgeMouseDown, onEdgeDoubleClick, onPointDoubleClick, onSkeletonNodeMouseDown, onSkeletonNodeDoubleClick, onSkeletonEdgeDoubleClick, onContextMenu
+    onEdgeMouseDown, onEdgeDoubleClick, onPointDoubleClick, onSkeletonNodeMouseDown, onSkeletonNodeDoubleClick, onSkeletonEdgeDoubleClick, onContextMenu, children, pvModules
 }, ref) => {
 
     // Helper functions moved inside to access viewState props
@@ -466,7 +468,7 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
         <div
             className="w-full h-full relative"
             style={{
-                perspective: is3D ? '800px' : 'none',
+                perspective: is3D ? '2500px' : 'none',
                 transformStyle: 'preserve-3d',
                 overflow: is3D ? 'visible' : 'hidden'
             }}
@@ -493,8 +495,24 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                 }}
             >
                 {/* Map Background */}
-                <div className="absolute inset-0 z-0" style={{ transformStyle: 'preserve-3d', pointerEvents: is3D ? 'none' : 'auto' }}>
-                    <SatelliteMap center={viewState.center} zoom={viewState.zoom} interactive={false} />
+                <div 
+                    className="absolute z-0" 
+                    style={{ 
+                        transformStyle: 'preserve-3d', 
+                        pointerEvents: is3D ? 'none' : 'auto',
+                        width: is3D ? '2400px' : '900px',
+                        height: is3D ? '2400px' : '900px',
+                        left: is3D ? '-750px' : '0px',
+                        top: is3D ? '-750px' : '0px'
+                    }}
+                >
+                    <SatelliteMap 
+                        center={viewState.center} 
+                        zoom={viewState.zoom} 
+                        interactive={false} 
+                        width={is3D ? 2400 : 900} 
+                        height={is3D ? 2400 : 900} 
+                    />
                 </div>
 
                 {/* Grid Overlay - hidden in 3D mode as it stretches to infinity with perspective */}
@@ -524,6 +542,7 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
 
                     // Calculate roof height based on tilt and shape
                     const roofHeight = shape === 'flat' ? 0 : (roofHeightPx * 0.3 * (tilt / 60)); // Scale by tilt
+                    const modulesForRoof = pvModules?.filter(m => m.roofId === roof.id) || [];
 
                     return (
                         <Roof3D
@@ -545,6 +564,7 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                             renderAreaLabel={renderAreaLabel}
                             renderPolygonPoints={renderPolygonPoints}
                             showDimensions={showDimensions}
+                            modulesToRender={modulesForRoof}
                         />
                     );
                 })}
@@ -602,6 +622,9 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                         />
                     );
                 })}
+
+                {/* Custom 3D Children Overlay (e.g. PV Modules) */}
+                {children}
 
                 {/* 2D Drawing Layer */}
                 <svg className="absolute inset-0 w-full h-full z-20 overflow-visible pointer-events-none" style={{ transform: 'translateZ(2px)' }}>
