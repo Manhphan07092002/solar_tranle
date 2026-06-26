@@ -477,7 +477,7 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
             {/* World Group - Rotates & Tilts */}
             <div
                 ref={ref}
-                className={`w-[900px] h-[900px] absolute top-1/2 left-1/2 outline-none select-none`}
+                className={`w-[900px] h-[900px] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 outline-none select-none`}
                 style={{
                     transformStyle: 'preserve-3d',
                     transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)'

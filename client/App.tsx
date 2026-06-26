@@ -26,6 +26,23 @@ export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
+  const [currentStep, setCurrentStep] = useState(() => {
+    try {
+      const saved = localStorage.getItem('designWizard_currentStep');
+      if (saved !== null) {
+        const step = parseInt(saved, 10);
+        if (!isNaN(step) && step >= 0 && step < 7) return step;
+      }
+    } catch (e) {}
+    return 0;
+  });
+
+  // Save currentStep to localStorage
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('designWizard_currentStep', currentStep.toString());
+    } catch (e) {}
+  }, [currentStep]);
 
   // Fetch projects on mount
   React.useEffect(() => {
@@ -184,13 +201,25 @@ export default function App() {
               <div className="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 hidden md:block">
                 Design Steps
               </div>
-              {/* These are visual indicators of steps in sidebar */}
-              <SidebarItem icon={<MapPin size={20} />} label="1. Project Setup" active={true} minimal />
-              <SidebarItem icon={<Zap size={20} />} label="2. Consumption" minimal />
-              <SidebarItem icon={<Box size={20} />} label="3. Site Modeling" minimal />
-              <SidebarItem icon={<Box size={20} />} label="4. PV Layout" minimal />
-              <SidebarItem icon={<Zap size={20} />} label="5. Electrical" minimal />
-              <SidebarItem icon={<BarChart3 size={20} />} label="6. Financial" minimal />
+              {/* Sidebar steps synchronized with DesignWizard */}
+              {[
+                { label: '1. Map & Basics', icon: <MapPin size={20} /> },
+                { label: '2. Consumption', icon: <Zap size={20} /> },
+                { label: '3. Modeling', icon: <Box size={20} /> },
+                { label: '4. PV Layout', icon: <Box size={20} /> },
+                { label: '5. Electrical', icon: <Zap size={20} /> },
+                { label: '6. Summary', icon: <FileText size={20} /> },
+                { label: '7. Financial', icon: <BarChart3 size={20} /> },
+              ].map((step, idx) => (
+                <SidebarItem
+                  key={idx}
+                  icon={step.icon}
+                  label={step.label}
+                  active={currentStep === idx}
+                  onClick={() => setCurrentStep(idx)}
+                  minimal
+                />
+              ))}
             </div>
           )}
         </nav>
@@ -261,6 +290,8 @@ export default function App() {
               project={activeProject}
               onFinish={handleFinishDesign}
               onSave={handleSaveProgress}
+              currentStep={currentStep}
+              onStepChange={setCurrentStep}
             />
           ) : null}
         </div>
@@ -274,7 +305,7 @@ export default function App() {
   );
 }
 
-function SidebarItem({ icon, label, active, onClick, minimal }: { icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void, minimal?: boolean }) {
+const SidebarItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean, onClick?: () => void, minimal?: boolean }> = ({ icon, label, active, onClick, minimal }) => {
   return (
     <button
       onClick={onClick}

@@ -149,6 +149,30 @@ export default function PVLayoutCanvas({
                             fill="rgba(239,68,68,0.15)" stroke="#dc2626" strokeWidth="1" strokeDasharray="4,2" />
                     ))}
 
+                    {/* Trees */}
+                    {(designData.trees || []).map(tree => {
+                        const sp = latLngToScreenPixel(tree.position);
+                        const rPx = tree.radius * ppm;
+                        // Give the tree a nice radial gradient to look like a tree top
+                        return (
+                            <g key={tree.id}>
+                                <defs>
+                                    <radialGradient id={`tree-grad-${tree.id}`}>
+                                        <stop offset="50%" stopColor="rgba(34,197,94,0.6)" />
+                                        <stop offset="100%" stopColor="rgba(21,128,61,0.3)" />
+                                    </radialGradient>
+                                </defs>
+                                <circle 
+                                    cx={sp.x} cy={sp.y} r={rPx}
+                                    fill={`url(#tree-grad-${tree.id})`} 
+                                    stroke="#16a34a" 
+                                    strokeWidth="2" 
+                                    strokeDasharray="4,2" 
+                                />
+                            </g>
+                        );
+                    })}
+
                     {/* SVG Definitions for Shadow Masks */}
                     <defs>
                         {(() => {
@@ -162,15 +186,16 @@ export default function PVLayoutCanvas({
                                     {sceneObjects.map((obj, objIdx) => {
                                         if (obj.topZ < shadow.sourceTopZ) return null;
 
-                                        // Self masking
-                                        if (obj.id === shadow.sourceId && shadow.sourcePoints && shadow.sourcePoints.length > 0) {
+                                        // Self masking - but NOT for trees (we want to see shadow under transparent trees)
+                                        if (obj.id === shadow.sourceId && shadow.sourcePoints && shadow.sourcePoints.length > 0 && obj.type !== 'cylinder') {
                                             return <polygon key={`mask-obj-${objIdx}`} points={shadow.sourcePoints.map(p => `${p.x},${p.y}`).join(' ')} fill="black" />;
                                         }
 
+                                        // Don't mask shadows with trees either, because trees are semi-transparent and shadows should be seen under them
+                                        if (obj.type === 'cylinder') return null;
+
                                         if (obj.type === 'polygon' && obj.points) {
                                             return <polygon key={`mask-obj-${objIdx}`} points={obj.points.map(p => `${p.x},${p.y}`).join(' ')} fill="black" />;
-                                        } else if (obj.type === 'cylinder' && obj.x !== undefined && obj.y !== undefined && obj.radius !== undefined) {
-                                            return <circle key={`mask-obj-${objIdx}`} cx={obj.x} cy={obj.y} r={obj.radius * ppm} fill="black" />;
                                         }
                                         return null;
                                     })}

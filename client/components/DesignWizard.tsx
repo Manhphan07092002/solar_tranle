@@ -17,26 +17,13 @@ interface DesignWizardProps {
     project: Project;
     onFinish: (finalCapacity: number, designData: DesignState) => void;
     onSave: (designData: DesignState) => Promise<void>;
+    currentStep: number;
+    onStepChange: (step: number) => void;
 }
 
 const STEPS = ['Map & Basics', 'Consumption', 'Modeling', 'PV Layout', 'Electrical', 'Summary', 'Financial'];
 
-export default function DesignWizard({ project, onFinish, onSave }: DesignWizardProps) {
-    // Restore currentStep from localStorage on mount
-    const [currentStep, setCurrentStep] = useState(() => {
-        try {
-            const saved = localStorage.getItem('designWizard_currentStep');
-            if (saved !== null) {
-                const step = parseInt(saved, 10);
-                if (!isNaN(step) && step >= 0 && step < STEPS.length) {
-                    return step;
-                }
-            }
-        } catch (error) {
-            console.error('Failed to restore currentStep from localStorage:', error);
-        }
-        return 0;
-    });
+export default function DesignWizard({ project, onFinish, onSave, currentStep, onStepChange }: DesignWizardProps) {
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [notification, setNotification] = useState<{
@@ -193,14 +180,7 @@ export default function DesignWizard({ project, onFinish, onSave }: DesignWizard
         };
     }, [designData, onSave]);
 
-    // Save currentStep to localStorage whenever it changes
-    useEffect(() => {
-        try {
-            localStorage.setItem('designWizard_currentStep', currentStep.toString());
-        } catch (error) {
-            console.error('Failed to save currentStep to localStorage:', error);
-        }
-    }, [currentStep]);
+
 
     const handleFinish = useCallback(async () => {
         // Save before finishing
@@ -228,15 +208,13 @@ export default function DesignWizard({ project, onFinish, onSave }: DesignWizard
     }, [onSave, currentCapacity, onFinish]);
 
     const handleNext = useCallback(async () => {
-        // Save progress on every step - use ref to get latest data
         await onSave(designDataRef.current);
-
         if (currentStep === STEPS.length - 1) {
             handleFinish();
         } else {
-            setCurrentStep(prev => Math.min(STEPS.length - 1, prev + 1));
+            onStepChange(currentStep + 1);
         }
-    }, [onSave, currentStep, handleFinish]);
+    }, [onSave, currentStep, handleFinish, onStepChange]);
 
     const handleSave = useCallback(async () => {
         setIsSaving(true);
@@ -327,7 +305,7 @@ export default function DesignWizard({ project, onFinish, onSave }: DesignWizard
                   ${idx === currentStep ? 'bg-blue-50 text-blue-700 ring-1 ring-blue-200' :
                                         idx < currentStep ? 'text-green-600' : 'text-slate-400'}
                 `}
-                                onClick={() => setCurrentStep(idx)}
+                                onClick={() => onStepChange(idx)}
                             >
                                 <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs shrink-0
                   ${idx === currentStep ? 'bg-blue-600 text-white' :
@@ -368,7 +346,7 @@ export default function DesignWizard({ project, onFinish, onSave }: DesignWizard
                         )}
                     </button>
                     <button
-                        onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+                        onClick={() => onStepChange(Math.max(0, currentStep - 1))}
                         disabled={currentStep === 0}
                         className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded disabled:opacity-50"
                     >
