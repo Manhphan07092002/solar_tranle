@@ -3,6 +3,7 @@ import { DesignState } from '../../../types';
 import ProjectSummaryTab from './ProjectSummaryTab';
 import ProjectLayoutTab from './ProjectLayoutTab';
 import { FileText, Download, Settings, ChevronDown } from 'lucide-react';
+import ExportPDFButton from './ExportPDFButton';
 
 interface StepSummaryProps {
     designData: DesignState;
@@ -36,18 +37,16 @@ export default function StepSummary({ designData, setDesignData }: StepSummaryPr
                         Report Settings <ChevronDown size={14} />
                     </button>
                     <div className="w-px h-4 bg-slate-300"></div>
-                    <button onClick={() => window.print()} className="text-blue-600 hover:text-blue-800" title="Print Report">
+                    <button onClick={() => window.print()} className="text-slate-500 hover:text-slate-800" title="Print Report">
                         <FileText size={18} />
                     </button>
-                    <button onClick={() => window.print()} className="text-blue-600 hover:text-blue-800" title="Download Report (PDF)">
-                        <Download size={18} />
-                    </button>
+                    <ExportPDFButton designData={designData} targetId="pdf-report-content" />
                 </div>
             </div>
 
             {/* Scrollable Content Area */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 print:p-0 print:overflow-visible">
-                <div className="max-w-6xl mx-auto print:max-w-none">
+                <div id="pdf-report-content" className="max-w-6xl mx-auto print:max-w-none bg-[#f5f6f8] print:bg-white pb-8">
                     {/* Render both tabs in print mode for a complete report */}
                     <div className="print:block hidden mb-8">
                         <h1 className="text-3xl font-bold text-slate-800 mb-2">SolarEdge Design Report</h1>

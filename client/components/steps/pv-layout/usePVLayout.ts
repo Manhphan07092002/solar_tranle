@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { DesignState, LatLngPoint } from '../../../types';
-import { MODULE_DATABASE } from '../../../constants';
+
 import { isPointInPolygon } from '../../../utils/helpers';
 import { calculatePlacement, distPtToSeg, isOverlappingStructureLine, PlacementContext } from '../../../utils/geometry/pvPlacement';
 import { latLngToPixel, pixelToLatLng } from '../../../utils/mapUtils';

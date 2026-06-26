@@ -7,7 +7,8 @@ import {
   BarChart3,
   FileText,
   Menu,
-  Plus
+  Plus,
+  LogOut
 } from 'lucide-react';
 import { Project, ProjectStatus, ProjectType, DesignState } from './types';
 import { MOCK_PROJECTS } from './constants';
@@ -19,10 +20,13 @@ import Dashboard from './components/Dashboard';
 import DesignWizard from './components/DesignWizard';
 
 import { projectService } from './services/apiService';
+import AuthContainer from './components/Auth/AuthContainer';
+import { authService } from './services/authService';
+import AdminLayout from './components/Admin/AdminLayout';
 
 // Main App Component
 export default function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'design'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'design' | 'admin'>('dashboard');
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
@@ -37,6 +41,24 @@ export default function App() {
     return 0;
   });
 
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  // Check auth on mount
+  React.useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      authService.getMe(token)
+        .then(userData => setUser(userData))
+        .catch(() => {
+          localStorage.removeItem('token');
+        })
+        .finally(() => setAuthLoading(false));
+    } else {
+      setAuthLoading(false);
+    }
+  }, []);
+
   // Save currentStep to localStorage
   React.useEffect(() => {
     try {
@@ -44,10 +66,12 @@ export default function App() {
     } catch (e) {}
   }, [currentStep]);
 
-  // Fetch projects on mount
+  // Fetch projects on mount or when user changes
   React.useEffect(() => {
-    loadProjects();
-  }, []);
+    if (user) {
+        loadProjects();
+    }
+  }, [user]);
 
   const loadProjects = async () => {
     try {
@@ -180,6 +204,33 @@ export default function App() {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setUser(null);
+    setProjects([]);
+    setActiveProject(null);
+    setCurrentView('dashboard');
+  };
+
+  if (authLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+  }
+
+  if (!user) {
+    return (
+      <AuthContainer 
+        onLoginSuccess={(userData, token) => {
+          localStorage.setItem('token', token);
+          setUser(userData);
+        }} 
+      />
+    );
+  }
+
+  if (currentView === 'admin' && user?.role === 'admin') {
+    return <AdminLayout onExitAdmin={() => setCurrentView('dashboard')} />;
+  }
+
   return (
     <div className="flex h-screen bg-surface font-sans text-slate-800 overflow-hidden">
       {/* Sidebar */}
@@ -224,17 +275,33 @@ export default function App() {
           )}
         </nav>
 
-        <div className="p-4 border-t border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
-              <span className="text-xs font-medium text-white">JD</span>
+          <div className="border-t border-slate-700 mt-2 p-2">
+            {user?.role === 'admin' && (
+              <button
+                onClick={() => setCurrentView('admin')}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800 rounded-md transition-colors mb-2"
+              >
+                <div className="w-8 flex justify-center"><LayoutDashboard size={18} className="text-purple-400" /></div>
+                <span className="hidden md:block">Admin Panel</span>
+              </button>
+            )}
+            <div className="flex items-center gap-3 px-3 py-2 text-sm text-slate-300">
+              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-white shrink-0">
+                {user?.name?.charAt(0) || 'U'}
+              </div>
+              <div className="hidden md:block overflow-hidden">
+                <p className="truncate font-medium">{user?.name}</p>
+                <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+              </div>
             </div>
-            <div className="hidden md:block">
-              <p className="text-sm font-medium text-white">John Doe</p>
-              <p className="text-xs text-slate-400">Senior Engineer</p>
-            </div>
+            <button 
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors"
+            >
+              <div className="w-8 flex justify-center"><LogOut size={18} /></div>
+              <span className="hidden md:block">Sign out</span>
+            </button>
           </div>
-        </div>
       </aside>
 
       {/* Main Content */}

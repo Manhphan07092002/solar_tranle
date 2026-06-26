@@ -4,7 +4,7 @@ import Project from '../models/Project';
 // Get all projects
 export const getProjects = async (req: Request, res: Response) => {
     try {
-        const projects = await Project.find().sort({ lastModified: -1 });
+        const projects = await Project.find({ userId: (req as any).user.id }).sort({ lastModified: -1 });
         // Transform to match frontend interface if needed
         res.json(projects);
     } catch (error) {
@@ -15,7 +15,7 @@ export const getProjects = async (req: Request, res: Response) => {
 // Get single project
 export const getProjectById = async (req: Request, res: Response) => {
     try {
-        const project = await Project.findOne({ id: req.params.id });
+        const project = await Project.findOne({ id: req.params.id, userId: (req as any).user.id });
         if (!project) {
             return res.status(404).json({ message: 'Project not found' });
         }
@@ -31,7 +31,7 @@ export const createProject = async (req: Request, res: Response) => {
         const { id, name, address, owner, type, thumbnailUrl } = req.body;
 
         // Check if project with ID already exists
-        const existingProject = await Project.findOne({ id });
+        const existingProject = await Project.findOne({ id, userId: (req as any).user.id });
         if (existingProject) {
             return res.status(400).json({ message: 'Project ID already exists' });
         }
@@ -45,7 +45,8 @@ export const createProject = async (req: Request, res: Response) => {
             thumbnailUrl,
             status: 'Draft',
             lastModified: new Date(),
-            capacityKWp: 0
+            capacityKWp: 0,
+            userId: (req as any).user.id
         });
 
         const savedProject = await newProject.save();
@@ -65,7 +66,7 @@ export const updateProject = async (req: Request, res: Response) => {
         console.log('[updateProject] id=', id, 'keys=', Object.keys(updates), 'hasDesignState=', hasDesignState);
 
         // Use findById + save to properly track Mixed field changes
-        const project = await Project.findOne({ id });
+        const project = await Project.findOne({ id, userId: (req as any).user.id });
         if (!project) {
             return res.status(404).json({ message: 'Project not found' });
         }
@@ -99,7 +100,7 @@ export const updateProject = async (req: Request, res: Response) => {
 export const deleteProject = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
-        const project = await Project.findOneAndDelete({ id });
+        const project = await Project.findOneAndDelete({ id, userId: (req as any).user.id });
 
         if (!project) {
             return res.status(404).json({ message: 'Project not found' });

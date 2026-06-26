@@ -3,6 +3,7 @@ import { DesignStateSchema } from './DesignState';
 
 export interface IProject extends Document {
     id: string; // Maintain compatibility with frontend string IDs
+    userId: mongoose.Types.ObjectId; // Reference to User
     name: string;
     address: string;
     owner: string;
@@ -16,6 +17,7 @@ export interface IProject extends Document {
 
 const ProjectSchema: Schema = new Schema({
     id: { type: String, required: true, unique: true },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     name: { type: String, required: true },
     address: { type: String, default: '' },
     owner: { type: String, default: 'Unknown' },

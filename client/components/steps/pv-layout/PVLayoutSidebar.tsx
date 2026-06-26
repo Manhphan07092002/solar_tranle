@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Grid, Eraser, Zap, Shield, ArrowUpDown, ArrowLeftRight, Sun, Moon, Calendar, Maximize, MousePointer2, Pen, ChevronDown, ChevronRight, Settings2, CloudSun } from 'lucide-react';
-import { DesignState } from '../../../types';
-import { MODULE_DATABASE } from '../../../constants';
+import { DesignState, PVModule } from '../../../types';
 import { ActiveTool, PVConfig, ModuleOrientation } from './types';
 
 interface Props {
@@ -38,6 +37,25 @@ export default function PVLayoutSidebar({
     
     // Accordion State
     const [expandedSection, setExpandedSection] = useState<'module' | 'placement' | 'shading'>('placement');
+
+    // Panels State
+    const [panelsDb, setPanelsDb] = useState<PVModule[]>([]);
+
+    React.useEffect(() => {
+        fetch('/api/public/panels')
+            .then(res => res.json())
+            .then(data => {
+                // Map the DB _id to id to match PVModule interface
+                const mappedData = data.map((d: any) => ({ ...d, id: d._id }));
+                setPanelsDb(mappedData);
+                
+                // Set initial selection if none exists
+                if (mappedData.length > 0 && !designData.selectedModule) {
+                    setDesignData(prev => ({ ...prev, selectedModule: mappedData[0] }));
+                }
+            })
+            .catch(console.error);
+    }, []);
 
     const toggleSection = (section: 'module' | 'placement' | 'shading') => {
         setExpandedSection(prev => prev === section ? prev : section);
@@ -86,13 +104,14 @@ export default function PVLayoutSidebar({
                         <div className="p-4 bg-white border-t border-slate-100 space-y-3 animate-in slide-in-from-top-2 duration-200">
                             <select
                                 className="w-full border-2 border-slate-200 rounded-lg p-2.5 bg-slate-50 text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer"
-                                value={designData.selectedModule?.id}
+                                value={designData.selectedModule?.id || ''}
                                 onChange={e => {
-                                    const m = MODULE_DATABASE.find(mod => mod.id === e.target.value) || MODULE_DATABASE[0];
+                                    const m = panelsDb.find(mod => mod.id === e.target.value) || panelsDb[0];
                                     setDesignData(prev => ({ ...prev, selectedModule: m }));
                                 }}
                             >
-                                {MODULE_DATABASE.map(m => (
+                                {panelsDb.length === 0 && <option value="">Loading...</option>}
+                                {panelsDb.map(m => (
                                     <option key={m.id} value={m.id}>{m.manufacturer} - {m.model} ({m.power}W)</option>
                                 ))}
                             </select>

@@ -2,10 +2,20 @@ import { Project } from '../types';
 
 const API_URL = '/api/projects';
 
+const getAuthHeaders = () => {
+    const token = localStorage.getItem('token');
+    return {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+    };
+};
+
 export const projectService = {
     // Get all projects
     getAll: async (): Promise<Project[]> => {
-        const response = await fetch(API_URL);
+        const response = await fetch(API_URL, {
+            headers: getAuthHeaders()
+        });
         if (!response.ok) {
             throw new Error('Failed to fetch projects');
         }
@@ -14,7 +24,9 @@ export const projectService = {
 
     // Get project by ID
     getById: async (id: string): Promise<Project> => {
-        const response = await fetch(`${API_URL}/${id}`);
+        const response = await fetch(`${API_URL}/${id}`, {
+            headers: getAuthHeaders()
+        });
         if (!response.ok) {
             throw new Error('Failed to fetch project');
         }
@@ -25,9 +37,7 @@ export const projectService = {
     create: async (project: Partial<Project>): Promise<Project> => {
         const response = await fetch(API_URL, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(project),
         });
         if (!response.ok) {
@@ -40,9 +50,7 @@ export const projectService = {
     update: async (id: string, updates: Partial<Project>): Promise<Project> => {
         const response = await fetch(`${API_URL}/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: getAuthHeaders(),
             body: JSON.stringify(updates),
         });
         if (!response.ok) {
@@ -55,6 +63,7 @@ export const projectService = {
     delete: async (id: string): Promise<void> => {
         const response = await fetch(`${API_URL}/${id}`, {
             method: 'DELETE',
+            headers: getAuthHeaders()
         });
         if (!response.ok) {
             throw new Error('Failed to delete project');

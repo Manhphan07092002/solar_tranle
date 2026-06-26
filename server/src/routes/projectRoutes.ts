@@ -1,4 +1,5 @@
 import express from 'express';
+import { protect } from '../middleware/authMiddleware';
 import {
     getProjects,
     getProjectById,
@@ -9,10 +10,7 @@ import {
 
 const router = express.Router();
 
-router.get('/', getProjects);
-router.get('/:id', getProjectById);
-router.post('/', createProject);
-router.put('/:id', updateProject);
-router.delete('/:id', deleteProject);
+router.route('/').get(protect, getProjects).post(protect, createProject);
+router.route('/:id').get(protect, getProjectById).put(protect, updateProject).delete(protect, deleteProject);
 
 export default router;

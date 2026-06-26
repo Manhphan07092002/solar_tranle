@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Zap, Plus, Trash2, AlertCircle, CheckCircle2, X, Info } from 'lucide-react';
-import { DesignState, PVString } from '../../../types';
-import { INVERTER_DATABASE } from '../../../constants';
+import { DesignState, PVString, Inverter } from '../../../types';
 
 interface ElectricalSidebarProps {
     designData: DesignState;
@@ -28,6 +27,25 @@ export default function ElectricalSidebar({
     handleAddString, handleDeleteString,
 }: ElectricalSidebarProps) {
 
+    // Inverters State
+    const [invertersDb, setInvertersDb] = useState<Inverter[]>([]);
+
+    React.useEffect(() => {
+        fetch('/api/public/inverters')
+            .then(res => res.json())
+            .then(data => {
+                // Map the DB _id to id to match Inverter interface
+                const mappedData = data.map((d: any) => ({ ...d, id: d._id }));
+                setInvertersDb(mappedData);
+                
+                // Set initial selection if none exists
+                if (mappedData.length > 0 && !designData.selectedInverter) {
+                    setDesignData(prev => ({ ...prev, selectedInverter: mappedData[0] }));
+                }
+            })
+            .catch(console.error);
+    }, []);
+
     return (
         <div className="w-96 bg-gradient-to-b from-slate-50 to-white border-r border-slate-200 flex flex-col z-10 shadow-2xl">
             <div className="p-5 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
@@ -46,15 +64,16 @@ export default function ElectricalSidebar({
                 <div className="space-y-3">
                     <label className="text-sm font-bold text-slate-700 uppercase tracking-wide">Inverter Selection</label>
                     <select
-                        className="w-full border-2 border-slate-200 rounded-xl p-3 bg-white text-sm font-medium shadow-sm hover:border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none"
-                        value={designData.selectedInverter?.id}
+                        className="w-full border-2 border-slate-200 rounded-lg p-2.5 bg-white text-sm font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 cursor-pointer shadow-sm"
+                        value={designData.selectedInverter?.id || ''}
                         onChange={(e) => {
-                            const inv = INVERTER_DATABASE.find(i => i.id === e.target.value) || INVERTER_DATABASE[0];
+                            const inv = invertersDb.find(i => i.id === e.target.value) || invertersDb[0];
                             setDesignData(prev => ({ ...prev, selectedInverter: inv }));
                         }}
                     >
-                        {INVERTER_DATABASE.map(inv => (
-                            <option key={inv.id} value={inv.id}>{inv.manufacturer} {inv.model} ({inv.maxPowerAC / 1000}kW)</option>
+                        {invertersDb.length === 0 && <option value="">Loading...</option>}
+                        {invertersDb.map(inv => (
+                            <option key={inv.id} value={inv.id}>{inv.manufacturer} {inv.model} ({(inv.maxPowerAC / 1000).toFixed(1)}kW)</option>
                         ))}
                     </select>
                     <div className="p-4 bg-gradient-to-br from-slate-50 to-blue-50 rounded-xl border-2 border-slate-200 shadow-sm space-y-3">

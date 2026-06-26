@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useCallback, useRef, Suspense, lazy, useEffect } from 'react';
-import { Project, DesignState } from '../types';
-import { MODULE_DATABASE, INVERTER_DATABASE } from '../constants';
+import { Project, ProjectStatus, ProjectType, DesignState } from '../types';
 import { ChevronRight, Check, Loader2, Save, X, AlertCircle, CheckCircle } from 'lucide-react';
 
 import StepSetup from './steps/StepSetup';
@@ -37,9 +36,8 @@ export default function DesignWizard({ project, onFinish, onSave, currentStep, o
             obstructions: [],
             trees: [],
             modules: [],
-            strings: [],
-            selectedModule: MODULE_DATABASE[0],
-            selectedInverter: INVERTER_DATABASE[0],
+            selectedModule: null,
+            selectedInverter: null,
             inverterCount: 1,
 
             siteImageUrl: null,
