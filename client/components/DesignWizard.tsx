@@ -257,7 +257,7 @@ export default function DesignWizard({ project, onFinish, onSave, currentStep, o
             case 4:
                 return <StepElectrical designData={designData} setDesignData={setDesignData} />;
             case 5:
-                return <StepSummary designData={designData} setDesignData={setDesignData} />;
+                return <StepSummary designData={designData} setDesignData={setDesignData} projectId={project.id} />;
             case 6:
                 return (
                     <Suspense fallback={

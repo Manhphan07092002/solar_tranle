@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, useReducer } from 'react';
 import { DesignState, RoofSurface, Obstruction, LatLngPoint, TreeObject } from '../../../types';
 import { Grid, Home, TreeDeciduous, Sun, Trash2, CloudSun, MousePointer2, Box, Pentagon, Ruler, Grip, Undo, Redo, MoreVertical, ZoomIn, ZoomOut, Layers, RotateCcw, Move3d, Eye, Compass, Focus, Minus, Plus, Hand, Navigation, HelpCircle, X, ChevronRight, ChevronsRight, Copy, Clipboard, AlertTriangle, CheckCircle2, Scissors, Download, Upload, Play, SplitSquareHorizontal, Wand2 } from 'lucide-react';
-import { latLngToPixel, pixelToLatLng, getMetersPerPixel } from '../../../utils/mapUtils';
+import { latLngToPixel, pixelToLatLng, getMetersPerPixel, getAutoAzimuth } from '../../../utils/mapUtils';
 import { splitPolygon, getPolygonArea, getEdgeLengthText, calculateAngle, calculateInheritedBaseHeight, getDistanceToSegment } from '../../../utils/geometry/polygonUtils';
 import { calculateRoofStructureLines } from '../../../utils/geometry/roofGeometry';
 import { getDistanceKm, isPointInPolygon } from '../../../utils/helpers';
@@ -1243,10 +1243,13 @@ export function useModeling(designData: any, setDesignData: any) {
         }
 
         if (activeTool === 'roof') {
+            // Auto calculate azimuth
+            const autoAzimuth = getAutoAzimuth(storedPoints, mapCenter[0], mapCenter[1], mapZoom);
+
             const newRoof: RoofSurface = {
                 id: `r${Date.now()}`,
                 points: storedPoints,
-                azimuth: 180,
+                azimuth: autoAzimuth,
                 tilt: 20,
                 shape: 'gable', // Default to gable roof
                 baseHeight: 3, // Default 3m (1 story building)

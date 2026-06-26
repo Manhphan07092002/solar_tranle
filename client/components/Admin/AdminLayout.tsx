@@ -5,6 +5,7 @@ import PanelManagement from './PanelManagement';
 import InverterManagement from './InverterManagement';
 import UserManagement from './UserManagement';
 import SurveyManagement from './SurveyManagement';
+import AdminSettings from './AdminSettings';
 
 interface AdminLayoutProps {
     onExitAdmin: () => void;
@@ -20,6 +21,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onExitAdmin }) => {
             case 'inverters': return <InverterManagement />;
             case 'users': return <UserManagement />;
             case 'surveys': return <SurveyManagement />;
+            case 'settings': return <AdminSettings />;
             default: return <AdminDashboard onNavigate={setActiveTab} />;
         }
     };
@@ -53,6 +55,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ onExitAdmin }) => {
                     <button onClick={() => setActiveTab('surveys')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${activeTab === 'surveys' ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow-lg shadow-purple-500/30' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
                         <FileText size={18} />
                         User Projects
+                    </button>
+                    <button onClick={() => setActiveTab('settings')} className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${activeTab === 'settings' ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/30' : 'text-slate-400 hover:bg-slate-800/50 hover:text-white'}`}>
+                        <Settings size={18} />
+                        Settings
                     </button>
                 </nav>
                 

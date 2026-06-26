@@ -3,6 +3,7 @@ import User from '../models/User';
 import Project from '../models/Project';
 import Panel from '../models/Panel';
 import Inverter from '../models/Inverter';
+import SystemSettings from '../models/SystemSettings';
 
 // Dashboard
 export const getDashboardStats = async (req: Request, res: Response) => {
@@ -196,6 +197,37 @@ export const deleteProject = async (req: Request, res: Response) => {
         const project = await Project.findByIdAndDelete(req.params.id);
         if (!project) return res.status(404).json({ message: 'Project not found' });
         res.json({ message: 'Project removed' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+// System Settings
+export const getSettings = async (req: Request, res: Response) => {
+    try {
+        let settings = await SystemSettings.findOne();
+        if (!settings) {
+            settings = await SystemSettings.create({});
+        }
+        res.json(settings);
+    } catch (error) {
+        res.status(500).json({ message: 'Server error' });
+    }
+};
+
+export const updateSettings = async (req: Request, res: Response) => {
+    try {
+        let settings = await SystemSettings.findOne();
+        if (settings) {
+            settings.appName = req.body.appName || settings.appName;
+            settings.primaryColor = req.body.primaryColor || settings.primaryColor;
+            settings.logoUrl = req.body.logoUrl || settings.logoUrl;
+            const updated = await settings.save();
+            res.json(updated);
+        } else {
+            const newSettings = await SystemSettings.create(req.body);
+            res.json(newSettings);
+        }
     } catch (error) {
         res.status(500).json({ message: 'Server error' });
     }

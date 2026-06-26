@@ -6,7 +6,8 @@ import {
     getPanels, createPanel, updatePanel, deletePanel,
     getInverters, createInverter, updateInverter, deleteInverter,
     getUsers, createUser, updateUser, deleteUser,
-    getProjects, deleteProject
+    getProjects, deleteProject,
+    getSettings, updateSettings
 } from '../controllers/adminController';
 
 const router = express.Router();
@@ -39,5 +40,9 @@ router.delete('/users/:id', deleteUser);
 // Projects
 router.get('/projects', getProjects);
 router.delete('/projects/:id', deleteProject);
+
+// System Settings
+router.get('/settings', getSettings);
+router.put('/settings', updateSettings);
 
 export default router;

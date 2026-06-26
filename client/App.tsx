@@ -20,13 +20,17 @@ import Dashboard from './components/Dashboard';
 import DesignWizard from './components/DesignWizard';
 
 import { projectService } from './services/apiService';
+import { publicService } from './services/adminService';
 import AuthContainer from './components/Auth/AuthContainer';
 import { authService } from './services/authService';
 import AdminLayout from './components/Admin/AdminLayout';
+import SharedProjectView from './components/SharedProjectView';
 
 // Main App Component
 export default function App() {
-  const [currentView, setCurrentView] = useState<'dashboard' | 'design' | 'admin'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'design' | 'admin' | 'shared'>('dashboard');
+  const [sharedToken, setSharedToken] = useState<string | null>(null);
+  const [appSettings, setAppSettings] = useState<{ appName?: string, primaryColor?: string, logoUrl?: string } | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,8 +48,53 @@ export default function App() {
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  // Check auth on mount
+  // Check auth and routing on mount
   React.useEffect(() => {
+    // Load White-label settings
+    publicService.getSettings().then(settings => {
+        setAppSettings(settings);
+        if (settings.primaryColor) {
+            document.documentElement.style.setProperty('--color-primary', settings.primaryColor);
+            
+            // Inject styles to override blue-600 globally
+            let style = document.getElementById('whitelabel-styles');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'whitelabel-styles';
+                document.head.appendChild(style);
+            }
+            style.textContent = `
+                .bg-blue-600, .hover\\:bg-blue-700:hover, .from-blue-600, .to-blue-500 {
+                    background-color: var(--color-primary) !important;
+                }
+                .text-blue-600, .text-blue-700, .hover\\:text-blue-800:hover {
+                    color: var(--color-primary) !important;
+                }
+                .border-blue-600 {
+                    border-color: var(--color-primary) !important;
+                }
+                .focus\\:ring-blue-600:focus {
+                    --tw-ring-color: var(--color-primary) !important;
+                }
+            `;
+        }
+        if (settings.appName) {
+            document.title = settings.appName;
+        }
+    }).catch(console.error);
+
+    // Basic routing for shared link
+    const path = window.location.pathname;
+    if (path.startsWith('/share/')) {
+        const token = path.split('/share/')[1];
+        if (token) {
+            setSharedToken(token);
+            setCurrentView('shared');
+            setAuthLoading(false);
+            return;
+        }
+    }
+
     const token = localStorage.getItem('token');
     if (token) {
       authService.getMe(token)
@@ -213,7 +262,11 @@ export default function App() {
   };
 
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-slate-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+    return <div className="h-screen w-screen flex items-center justify-center bg-slate-50">Loading...</div>;
+  }
+
+  if (currentView === 'shared' && sharedToken) {
+    return <SharedProjectView token={sharedToken} />;
   }
 
   if (!user) {
@@ -223,6 +276,8 @@ export default function App() {
           localStorage.setItem('token', token);
           setUser(userData);
         }} 
+        logoUrl={appSettings?.logoUrl}
+        appName={appSettings?.appName}
       />
     );
   }
@@ -236,8 +291,11 @@ export default function App() {
       {/* Sidebar */}
       <aside className="w-16 md:w-64 bg-primary text-slate-300 flex flex-col border-r border-slate-800 transition-all duration-300">
         <div className="p-4 flex flex-col items-center gap-2 border-b border-slate-700 h-auto py-6">
-
-          <span className="font-bold text-lg text-white hidden md:block text-center">Solar Design</span>
+          {appSettings?.logoUrl ? (
+             <img src={appSettings.logoUrl} alt="Logo" className="h-10 object-contain hidden md:block" />
+          ) : (
+             <span className="font-bold text-lg text-white hidden md:block text-center">{appSettings?.appName || 'Solar Design'}</span>
+          )}
         </div>
 
         <nav className="flex-1 py-6 space-y-1">

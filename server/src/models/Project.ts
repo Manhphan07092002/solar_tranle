@@ -13,6 +13,8 @@ export interface IProject extends Document {
     type: 'Residential' | 'Commercial';
     thumbnailUrl: string;
     designState: any; // Using the embedded schema structure
+    isPublic: boolean;
+    shareToken?: string;
 }
 
 const ProjectSchema: Schema = new Schema({
@@ -34,7 +36,9 @@ const ProjectSchema: Schema = new Schema({
         default: 'Residential'
     },
     thumbnailUrl: { type: String, default: '' },
-    designState: { type: DesignStateSchema, default: null }
+    designState: { type: DesignStateSchema, default: null },
+    isPublic: { type: Boolean, default: false },
+    shareToken: { type: String, unique: true, sparse: true }
 }, {
     timestamps: true,
     toJSON: { virtuals: true },

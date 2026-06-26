@@ -658,6 +658,40 @@ export const splitPolygon = (
 
 // --- PV Layout Support Functions ---
 
+export const getAutoAzimuth = (points: { lat: number, lng: number }[], centerLat: number, centerLng: number, zoom: number = 20): number => {
+    if (points.length < 2) return 180;
+    
+    // Convert to pixel space
+    const pxPoints = points.map(p => latLngToPixel([p.lat, p.lng], [centerLat, centerLng], zoom));
+    
+    let maxDistSq = 0;
+    let bestAngle = 0;
+    
+    for (let i = 0; i < pxPoints.length; i++) {
+        const p1 = pxPoints[i];
+        const p2 = pxPoints[(i + 1) % pxPoints.length];
+        const distSq = (p2[0] - p1[0]) ** 2 + (p2[1] - p1[1]) ** 2;
+        if (distSq > maxDistSq) {
+            maxDistSq = distSq;
+            bestAngle = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+        }
+    }
+    
+    // bestAngle is in radians in screen space (+y down, +x right)
+    // Convert to degrees
+    let angleDeg = bestAngle * 180 / Math.PI;
+    
+    // Convert screen angle to geographic azimuth (where North is 0, East is 90)
+    // In screen space: 0 = East (90), 90 = South (180), -90 = North (0), 180 = West (270)
+    let edgeAzimuth = (angleDeg + 90 + 360) % 360;
+    
+    // The roof's azimuth (slope direction) is typically perpendicular to the longest edge (eave/ridge)
+    // We add 90 degrees to get the perpendicular direction
+    let roofAzimuth = (edgeAzimuth + 90) % 360;
+    
+    return Math.round(roofAzimuth);
+};
+
 export const getPolygonLongestEdgeAngle = (points: { x: number, y: number }[]): number => {
     if (points.length < 2) return 0;
     let maxDistSq = 0;

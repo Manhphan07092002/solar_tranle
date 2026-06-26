@@ -9,9 +9,11 @@ import logo from '../../Images/1763293698135-932453456.png';
 
 interface AuthContainerProps {
     onLoginSuccess: (user: any, token: string) => void;
+    logoUrl?: string;
+    appName?: string;
 }
 
-const AuthContainer: React.FC<AuthContainerProps> = ({ onLoginSuccess }) => {
+const AuthContainer: React.FC<AuthContainerProps> = ({ onLoginSuccess, logoUrl, appName }) => {
     const [view, setView] = useState<'landing' | 'login' | 'register' | 'forgot' | 'reset'>('landing');
     const [resetToken, setResetToken] = useState('');
 
@@ -30,6 +32,8 @@ const AuthContainer: React.FC<AuthContainerProps> = ({ onLoginSuccess }) => {
             <Landing 
                 onLoginClick={() => setView('login')}
                 onRegisterClick={() => setView('register')}
+                logoUrl={logoUrl}
+                appName={appName}
             />
         );
     }
@@ -55,7 +59,11 @@ const AuthContainer: React.FC<AuthContainerProps> = ({ onLoginSuccess }) => {
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                     </button>
-                    <img src={logo} alt="Logo" className="h-10 object-contain" />
+                    {logoUrl ? (
+                        <img src={logoUrl} alt="Logo" className="h-10 object-contain" />
+                    ) : (
+                        <img src={logo} alt="Logo" className="h-10 object-contain" />
+                    )}
                 </div>
                 
                 <div className="px-8 pb-8 flex-1 flex flex-col">

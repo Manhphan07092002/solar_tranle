@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import crypto from 'crypto';
 import Project from '../models/Project';
 
 // Get all projects
@@ -107,6 +108,34 @@ export const deleteProject = async (req: Request, res: Response) => {
         }
 
         res.json({ message: 'Project deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error', error });
+    }
+};
+
+export const shareProject = async (req: Request, res: Response) => {
+    try {
+        const project = await Project.findOne({ id: req.params.id, userId: (req as any).user.id });
+        if (!project) return res.status(404).json({ message: 'Project not found' });
+        
+        project.isPublic = true;
+        if (!project.shareToken) {
+            project.shareToken = crypto.randomBytes(16).toString('hex');
+        }
+        await project.save();
+        
+        res.json({ shareToken: project.shareToken });
+    } catch (error) {
+        res.status(500).json({ message: 'Server Error', error });
+    }
+};
+
+export const getSharedProject = async (req: Request, res: Response) => {
+    try {
+        const project = await Project.findOne({ shareToken: req.params.token, isPublic: true });
+        if (!project) return res.status(404).json({ message: 'Shared project not found or access revoked' });
+        
+        res.json(project);
     } catch (error) {
         res.status(500).json({ message: 'Server Error', error });
     }

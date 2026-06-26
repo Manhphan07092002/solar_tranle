@@ -68,5 +68,28 @@ export const projectService = {
         if (!response.ok) {
             throw new Error('Failed to delete project');
         }
+    },
+
+    // Share project
+    share: async (id: string): Promise<{ shareToken: string }> => {
+        const response = await fetch(`${API_URL}/${id}/share`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (!response.ok) {
+            throw new Error('Failed to generate share link');
+        }
+        return response.json();
+    },
+
+    // Get shared project
+    getShared: async (token: string): Promise<Project> => {
+        const response = await fetch(`/api/public/shared/${token}`, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!response.ok) {
+            throw new Error('Shared project not found');
+        }
+        return response.json();
     }
 };

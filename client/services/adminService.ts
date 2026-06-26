@@ -127,5 +127,29 @@ export const adminService = {
         });
         if (!response.ok) throw new Error('Failed to delete project');
         return response.json();
+    },
+
+    // System Settings
+    getSettings: async () => {
+        const response = await fetch(`${API_URL}/settings`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error('Failed to fetch settings');
+        return response.json();
+    },
+    updateSettings: async (settings: any) => {
+        const response = await fetch(`${API_URL}/settings`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(settings)
+        });
+        if (!response.ok) throw new Error('Failed to update settings');
+        return response.json();
+    }
+};
+
+export const publicService = {
+    getSettings: async () => {
+        const response = await fetch('/api/public/settings', { headers: { 'Content-Type': 'application/json' } });
+        if (!response.ok) throw new Error('Failed to get public settings');
+        return response.json();
     }
 };
