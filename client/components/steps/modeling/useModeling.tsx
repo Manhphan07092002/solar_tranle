@@ -44,9 +44,13 @@ export function useModeling(designData: any, setDesignData: any) {
     // Refs for synced 3D state during high-frequency updates
     const rotationRef = useRef(0);
     const tiltRef = useRef(60);
+    const scaleRef = useRef(1);
+    const isRotatingViewRef = useRef(false);
+    const pan3DRef = useRef({ x: 0, y: 0 });
+    const isPanning3DRef = useRef(false);
 
     const [isRotatingView, setIsRotatingView] = useState(false);
-    const [isMapPanning, setIsMapPanning] = useState(false);
+    const isMapPanningRef = useRef(false);
     const [roofHeight3D, setRoofHeight3D] = useState(3);
     const [editRoofShapeMode, setEditRoofShapeMode] = useState(false);
 
@@ -134,6 +138,36 @@ export function useModeling(designData: any, setDesignData: any) {
     useEffect(() => {
         isMountedRef.current = true;
     }, []);
+
+    // 3D mode native wheel zoom
+    useEffect(() => {
+        const container = canvasRef.current;
+        if (!container || !is3D) return;
+
+        const handleNativeWheel = (e: WheelEvent) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            scaleRef.current = Math.max(0.2, Math.min(5, scaleRef.current * delta));
+            if (worldTransformRef.current) {
+                worldTransformRef.current.style.transform = `translate(calc(-50% + ${pan3DRef.current.x}px), calc(-50% + ${pan3DRef.current.y}px)) scale(${scaleRef.current}) rotateX(${tiltRef.current}deg) rotateZ(${rotationRef.current}deg)`;
+            }
+        };
+
+        container.addEventListener('wheel', handleNativeWheel, { passive: false });
+        return () => container.removeEventListener('wheel', handleNativeWheel);
+    }, [is3D]);
+
+    // SYNC STATE: transform manually to avoid React inline style lag
+    useEffect(() => {
+        if (worldTransformRef.current) {
+            // Apply scale, tilt, rotation
+            if (is3D) {
+                worldTransformRef.current.style.transform = `translate(calc(-50% + ${pan3DRef.current.x}px), calc(-50% + ${pan3DRef.current.y}px)) scale(${scaleRef.current}) rotateX(${tiltAngle}deg) rotateZ(${rotationAngle}deg)`;
+            } else {
+                worldTransformRef.current.style.transform = `translate(-50%, -50%)`;
+            }
+        }
+    }, [is3D, tiltAngle, rotationAngle]);
 
     // SYNC STATE: MapConfig -> ViewState
     const prevViewStateRef = useRef<{ lat: number, lng: number, zoom: number } | null>(null);
@@ -1416,7 +1450,7 @@ export function useModeling(designData: any, setDesignData: any) {
         const rect = canvasRef.current.getBoundingClientRect();
 
         // OPTIMIZED ROTATION: Direct DOM update
-        if (isRotatingView && is3D && lastMousePosRef.current && worldTransformRef.current) {
+        if (isRotatingViewRef.current && is3D && lastMousePosRef.current && worldTransformRef.current) {
             const deltaX = e.clientX - lastMousePosRef.current.x;
             const deltaY = e.clientY - lastMousePosRef.current.y;
 
@@ -1425,24 +1459,25 @@ export function useModeling(designData: any, setDesignData: any) {
             if (rotationRef.current < 0) rotationRef.current += 360; // Keep it positive
             tiltRef.current = Math.max(0, Math.min(90, tiltRef.current - deltaY * 0.4));
 
-            worldTransformRef.current.style.transform = `translate(-50%, -50%) rotateX(${tiltRef.current}deg) rotateZ(${rotationRef.current}deg)`;
+            worldTransformRef.current.style.transform = `translate(calc(-50% + ${pan3DRef.current.x}px), calc(-50% + ${pan3DRef.current.y}px)) scale(${scaleRef.current}) rotateX(${tiltRef.current}deg) rotateZ(${rotationRef.current}deg)`;
             lastMousePosRef.current = { x: e.clientX, y: e.clientY };
             return;
         }
 
-        // Panning Map via mouse drag in 2D
-        if (isMapPanning && !is3D && lastMousePosRef.current) {
-            const dx = lastMousePosRef.current.x - e.clientX;
-            const dy = lastMousePosRef.current.y - e.clientY;
+        // OPTIMIZED PANNING 3D: Direct DOM update
+        if (isPanning3DRef.current && is3D && lastMousePosRef.current && worldTransformRef.current) {
+            const deltaX = e.clientX - lastMousePosRef.current.x;
+            const deltaY = e.clientY - lastMousePosRef.current.y;
 
-            // Move center by dx and dy pixels
-            const centerPx = { x: CANVAS_WIDTH / 2 + dx, y: CANVAS_HEIGHT / 2 + dy };
-            const newCenter = pixelToLatLng(viewState.center, viewState.zoom, CANVAS_WIDTH, CANVAS_HEIGHT, centerPx);
+            pan3DRef.current.x += deltaX;
+            pan3DRef.current.y += deltaY;
 
-            setViewState(prev => ({ ...prev, center: newCenter }));
+            worldTransformRef.current.style.transform = `translate(calc(-50% + ${pan3DRef.current.x}px), calc(-50% + ${pan3DRef.current.y}px)) scale(${scaleRef.current}) rotateX(${tiltRef.current}deg) rotateZ(${rotationRef.current}deg)`;
             lastMousePosRef.current = { x: e.clientX, y: e.clientY };
             return;
         }
+
+        // 2D Panning logic is handled exclusively by handleGlobalMove to prevent double state updates per tick
 
         const rawX = e.clientX - rect.left;
         const rawY = e.clientY - rect.top;
@@ -1627,13 +1662,84 @@ export function useModeling(designData: any, setDesignData: any) {
                 });
                 rafIdRef.current = null;
             });
+        } else if (dragState && dragState.type === 'object') {
+            const { x, y } = getSnappedPoint(rawX, rawY);
+
+            // Skip tiny movements
+            if (lastDragPointRef.current) {
+                const deltaX = Math.abs(x - lastDragPointRef.current.x);
+                const deltaY = Math.abs(y - lastDragPointRef.current.y);
+                if (deltaX < 0.5 && deltaY < 0.5) return;
+            }
+
+            const dx = x - (lastDragPointRef.current?.x || x);
+            const dy = y - (lastDragPointRef.current?.y || y);
+
+            lastDragPointRef.current = { x, y };
+
+            if (rafIdRef.current !== null) {
+                cancelAnimationFrame(rafIdRef.current);
+            }
+
+            rafIdRef.current = requestAnimationFrame(() => {
+                setDesignData(prev => {
+                    const objectType = dragState.movingPoints[0]?.type;
+                    
+                    if (objectType === 'roof') {
+                        const newRoofs = prev.roofs.map(r => {
+                            if (r.id === dragState.activeId) {
+                                return {
+                                    ...r,
+                                    points: r.points.map(p => {
+                                        const sp = storedToScreen(p);
+                                        return screenToStored({ x: sp.x + dx, y: sp.y + dy });
+                                    }),
+                                    isAnalyzed: false,
+                                    skeletonOffsets: undefined,
+                                    deletedSkeletonNodes: undefined
+                                };
+                            }
+                            return r;
+                        });
+                        return { ...prev, roofs: newRoofs };
+                    } else if (objectType === 'obstruction') {
+                        const newObstructions = prev.obstructions.map(o => {
+                            if (o.id === dragState.activeId) {
+                                return {
+                                    ...o,
+                                    points: o.points.map(p => {
+                                        const sp = storedToScreen(p);
+                                        return screenToStored({ x: sp.x + dx, y: sp.y + dy });
+                                    })
+                                };
+                            }
+                            return o;
+                        });
+                        return { ...prev, obstructions: newObstructions };
+                    } else if (objectType === 'tree') {
+                        const newTrees = (prev.trees || []).map(t => {
+                            if (t.id === dragState.activeId) {
+                                const sp = storedToScreen(t.position);
+                                return {
+                                    ...t,
+                                    position: screenToStored({ x: sp.x + dx, y: sp.y + dy })
+                                };
+                            }
+                            return t;
+                        });
+                        return { ...prev, trees: newTrees };
+                    }
+                    return prev;
+                });
+                rafIdRef.current = null;
+            });
         } else if (isDrawing) {
             const { snapped } = computeSnap(rawX, rawY);
             setPreviewPoint(snapped);
         } else {
             setPreviewPoint(null);
         }
-    }, [isRotatingView, is3D, activeTool, points.length, snapToGrid, smartSnap, dragState, isDrawing, computeSnap, getSnappedPoint, screenToStored, setDesignData, isMapPanning, viewState]);
+    }, [isRotatingView, is3D, activeTool, points.length, snapToGrid, smartSnap, dragState, isDrawing, computeSnap, getSnappedPoint, screenToStored, setDesignData, viewState]);
 
     const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
         // Hide context menu initially on mouse down
@@ -1641,26 +1747,46 @@ export function useModeling(designData: any, setDesignData: any) {
 
         // Allow rotation on left click (if rotate tool), middle click, or right click
         const shouldRotate = is3D && (activeTool === 'rotate' || e.button === 1 || e.button === 2);
-        const shouldPan = !is3D && !isDrawing && (activeTool === 'select' || activeTool === 'pan' || e.button === 1 || e.button === 2);
+        const shouldPan2D = !is3D && !isDrawing && (activeTool === 'select' || activeTool === 'pan' || e.button === 1 || e.button === 2);
+        const shouldPan3D = is3D && activeTool === 'pan' && e.button === 0;
 
         if (shouldRotate) {
             e.preventDefault();
             e.stopPropagation();
-            setIsRotatingView(true);
+            isRotatingViewRef.current = true;
+            if (worldTransformRef.current) {
+                worldTransformRef.current.style.transition = 'none';
+                worldTransformRef.current.style.willChange = 'transform';
+            }
             lastMousePosRef.current = { x: e.clientX, y: e.clientY };
             // Sync refs with current state
             rotationRef.current = rotationAngle;
             tiltRef.current = tiltAngle;
-        } else if (shouldPan) {
+        } else if (shouldPan3D) {
+            e.preventDefault();
+            e.stopPropagation();
+            isPanning3DRef.current = true;
+            if (worldTransformRef.current) {
+                worldTransformRef.current.style.transition = 'none';
+                worldTransformRef.current.style.willChange = 'transform';
+            }
+            lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+        } else if (shouldPan2D) {
+            e.preventDefault();
+            e.stopPropagation();
             // Start panning
-            setIsMapPanning(true);
+            isMapPanningRef.current = true;
             lastMousePosRef.current = { x: e.clientX, y: e.clientY };
         }
     }, [is3D, activeTool, rotationAngle, tiltAngle, isDrawing]);
 
     const handleCanvasMouseUp = useCallback((e?: React.MouseEvent) => {
-        if (isRotatingView) {
-            setIsRotatingView(false);
+        if (isRotatingViewRef.current) {
+            isRotatingViewRef.current = false;
+            if (worldTransformRef.current) {
+                worldTransformRef.current.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+                worldTransformRef.current.style.willChange = 'auto';
+            }
             // Sync state with refs after rotation ends
             let newRotation = rotationRef.current;
             if (newRotation < 0) newRotation += 360;
@@ -1669,12 +1795,20 @@ export function useModeling(designData: any, setDesignData: any) {
             setTiltAngle(newTilt);
             // Update worldTransformRef if it exists
             if (worldTransformRef.current) {
-                worldTransformRef.current.style.transform = `translate(-50%, -50%) rotateX(${newTilt}deg) rotateZ(${newRotation}deg)`;
+                worldTransformRef.current.style.transform = `translate(calc(-50% + ${pan3DRef.current.x}px), calc(-50% + ${pan3DRef.current.y}px)) scale(${scaleRef.current}) rotateX(${newTilt}deg) rotateZ(${newRotation}deg)`;
             }
         }
 
-        if (isMapPanning) {
-            setIsMapPanning(false);
+        if (isPanning3DRef.current) {
+            isPanning3DRef.current = false;
+            if (worldTransformRef.current) {
+                worldTransformRef.current.style.transition = 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)';
+                worldTransformRef.current.style.willChange = 'auto';
+            }
+        }
+
+        if (isMapPanningRef.current) {
+            isMapPanningRef.current = false;
         }
 
         lastMousePosRef.current = null;
@@ -1842,14 +1976,19 @@ export function useModeling(designData: any, setDesignData: any) {
 
         lastDragPointRef.current = null;
         setDragState(null);
-    }, [isRotatingView, dragState, designData, isMapPanning]);
+    }, [isRotatingView, dragState, designData]);
+
+    // Reset 3D pan when switching to 2D mode to ensure 3D camera always starts centered
+    useEffect(() => {
+        if (!is3D) {
+            pan3DRef.current = { x: 0, y: 0 };
+        }
+    }, [is3D]);
 
     // Global mouse events for rotation and panning
     useEffect(() => {
-        if (!isRotatingView && !isMapPanning) return;
-
         const handleGlobalMove = (e: MouseEvent) => {
-            if (isRotatingView && is3D && lastMousePosRef.current && worldTransformRef.current) {
+            if (isRotatingViewRef.current && is3D && lastMousePosRef.current && worldTransformRef.current) {
                 const deltaX = e.clientX - lastMousePosRef.current.x;
                 const deltaY = e.clientY - lastMousePosRef.current.y;
 
@@ -1857,12 +1996,24 @@ export function useModeling(designData: any, setDesignData: any) {
                 if (rotationRef.current < 0) rotationRef.current += 360;
                 tiltRef.current = Math.max(0, Math.min(90, tiltRef.current - deltaY * 0.4));
 
-                worldTransformRef.current.style.transform = `translate(-50%, -50%) rotateX(${tiltRef.current}deg) rotateZ(${rotationRef.current}deg)`;
+                worldTransformRef.current.style.transform = `translate(calc(-50% + ${pan3DRef.current.x}px), calc(-50% + ${pan3DRef.current.y}px)) scale(${scaleRef.current}) rotateX(${tiltRef.current}deg) rotateZ(${rotationRef.current}deg)`;
                 lastMousePosRef.current = { x: e.clientX, y: e.clientY };
                 return;
             }
 
-            if (isMapPanning && !is3D && lastMousePosRef.current) {
+            if (isPanning3DRef.current && is3D && lastMousePosRef.current && worldTransformRef.current) {
+                const deltaX = e.clientX - lastMousePosRef.current.x;
+                const deltaY = e.clientY - lastMousePosRef.current.y;
+
+                pan3DRef.current.x += deltaX;
+                pan3DRef.current.y += deltaY;
+
+                worldTransformRef.current.style.transform = `translate(calc(-50% + ${pan3DRef.current.x}px), calc(-50% + ${pan3DRef.current.y}px)) scale(${scaleRef.current}) rotateX(${tiltRef.current}deg) rotateZ(${rotationRef.current}deg)`;
+                lastMousePosRef.current = { x: e.clientX, y: e.clientY };
+                return;
+            }
+
+            if (isMapPanningRef.current && !is3D && lastMousePosRef.current) {
                 const dx = lastMousePosRef.current.x - e.clientX;
                 const dy = lastMousePosRef.current.y - e.clientY;
                 const centerPx = { x: CANVAS_WIDTH / 2 + dx, y: CANVAS_HEIGHT / 2 + dy };
@@ -1883,7 +2034,8 @@ export function useModeling(designData: any, setDesignData: any) {
             window.removeEventListener('mousemove', handleGlobalMove);
             window.removeEventListener('mouseup', handleGlobalUp);
         };
-    }, [isRotatingView, isMapPanning, is3D, viewState, setViewState, handleCanvasMouseUp]);
+    }, [isRotatingView, is3D, viewState, setViewState, handleCanvasMouseUp]);
+
 
     const handlePointMouseDown = useCallback((id: string, index: number, e: React.MouseEvent) => {
         if (activeTool !== 'select') return;
@@ -2199,6 +2351,32 @@ export function useModeling(designData: any, setDesignData: any) {
         }
     }, [isDrawing, activeTool, selectedIds]);
 
+    const handleObjectMouseDown = useCallback((id: string, type: 'roof' | 'obstruction' | 'tree', e: React.MouseEvent) => {
+        if (isDrawing || activeTool !== 'select') return;
+        e.stopPropagation();
+        e.preventDefault();
+
+        // Select the object
+        setSelectedId(id);
+        if (!selectedIds.has(id)) setSelectedIds(new Set([id]));
+        setSelectedPoint(null);
+        setSelectedEdge(null);
+
+        if (canvasRef.current) {
+            const rect = canvasRef.current.getBoundingClientRect();
+            lastDragPointRef.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        }
+
+        dragStartSnapshotRef.current = cloneDesign(designData);
+
+        setDragState({
+            type: 'object',
+            activeId: id,
+            activeIndex: 0,
+            movingPoints: [{ id, type, index: 0 }]
+        });
+    }, [isDrawing, activeTool, selectedIds, designData, cloneDesign]);
+
     const handleContextMenu = useCallback((type: 'roof' | 'canvas' | 'obstruction' | 'tree', id: string | null, e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -2313,7 +2491,6 @@ export function useModeling(designData: any, setDesignData: any) {
         rotationAngle, setRotationAngle,
         rotationRef, tiltRef,
         isRotatingView, setIsRotatingView,
-        isMapPanning, setIsMapPanning,
         roofHeight3D, setRoofHeight3D,
         editRoofShapeMode, setEditRoofShapeMode,
         dragState, setDragState,
@@ -2342,7 +2519,7 @@ export function useModeling(designData: any, setDesignData: any) {
         commitDesign, handleUndo, handleRedo, handleCopy, handlePaste,
         handleBulkDelete, renderContextMenu,
         handleCanvasClick, handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp,
-        handleObjectClick, handlePointMouseDown, handleSkeletonNodeMouseDown,
+        handleObjectClick, handleObjectMouseDown, handlePointMouseDown, handleSkeletonNodeMouseDown,
         handleSkeletonNodeDoubleClick, handleSkeletonEdgeDoubleClick, handleEdgeMouseDown,
         handleEdgeDoubleClick, handlePointDoubleClick, handleContextMenu,
         handleAutoFixInvalidPoints, handleFinishPoly, handleZoomIn, handleZoomOut

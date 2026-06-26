@@ -12,31 +12,16 @@ interface Obstruction3DProps {
 }
 
 const Obstruction3D: React.FC<Obstruction3DProps> = ({
-    obs, screenPoints, isSelected, heightPx, baseElevationPx, layers, layerStep, onObjectClick
+    obs, screenPoints, isSelected, heightPx, baseElevationPx, onObjectClick
 }) => {
     const colors = {
         base: '#b91c1c', // darker red for sides
-        side: 'rgba(185, 28, 28, 0.8)',
-        top: isSelected ? 'rgba(239, 68, 68, 0.9)' : 'rgba(239, 68, 68, 0.7)'
+        side: 'rgba(185, 28, 28, 0.85)',
+        top: isSelected ? 'rgba(239, 68, 68, 1)' : 'rgba(239, 68, 68, 0.9)'
     };
 
     return (
         <div className="absolute inset-0 pointer-events-none" style={{ transformStyle: 'preserve-3d', zIndex: 10, transform: `translateZ(${baseElevationPx}px)` }}>
-            {/* Base layers */}
-            {Array.from({ length: layers }).map((_, i) => (
-                <div key={i} className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: `translateZ(${i * layerStep}px)` }}>
-                    <svg className="w-full h-full overflow-hidden">
-                        <polygon
-                            points={screenPoints.map(p => `${p.x},${p.y}`).join(' ')}
-                            fill={i === 0 ? "rgba(0,0,0,0.5)" : colors.base}
-                            stroke={colors.base}
-                            strokeWidth="1"
-                            opacity={i === 0 ? 1 : 0.7}
-                        />
-                    </svg>
-                </div>
-            ))}
-
             {/* Side faces */}
             {screenPoints.map((p, i) => {
                 const next = screenPoints[(i + 1) % screenPoints.length];
@@ -49,7 +34,7 @@ const Obstruction3D: React.FC<Obstruction3DProps> = ({
                 return (
                     <div
                         key={`obs-wall-${i}`}
-                        className="absolute"
+                        className="absolute pointer-events-none"
                         style={{
                             left: p.x,
                             top: p.y,
@@ -76,6 +61,16 @@ const Obstruction3D: React.FC<Obstruction3DProps> = ({
                             strokeWidth="2"
                         />
                     </g>
+                </svg>
+            </div>
+            
+            {/* Base shadow/floor footprint */}
+            <div className="absolute inset-0 w-full h-full pointer-events-none" style={{ transform: `translateZ(0px)` }}>
+                <svg className="w-full h-full overflow-hidden">
+                    <polygon
+                        points={screenPoints.map(p => `${p.x},${p.y}`).join(' ')}
+                        fill="rgba(0,0,0,0.3)"
+                    />
                 </svg>
             </div>
         </div>

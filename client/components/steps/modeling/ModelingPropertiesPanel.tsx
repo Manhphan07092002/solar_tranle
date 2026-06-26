@@ -323,9 +323,40 @@ export default function ModelingPropertiesPanel({
             )}
 
             {tree && (
-                <div className="text-xs text-slate-600 bg-slate-50 p-2 rounded mb-2">
-                    Radius: {tree.radius}m | Height: {tree.height}m
-                </div>
+                <>
+                    <div className="mb-2 flex flex-col gap-1">
+                        <div className="flex justify-between items-center">
+                            <label className="text-xs uppercase text-slate-500">Radius</label>
+                            <div className="flex items-center gap-1">
+                                <input type="number" min="0.5" max="20" step="0.5" value={tree.radius} className="w-16 px-1 py-0.5 text-xs border rounded text-right" onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    commitDesign({ ...designData, trees: (designData.trees || []).map(t => selectedIds.has(t.id) || t.id === selectedId ? { ...t, radius: val } : t) });
+                                }} />
+                                <span className="text-xs text-slate-500">m</span>
+                            </div>
+                        </div>
+                        <input type="range" min="0.5" max="20" step="0.5" value={tree.radius} className="w-full" onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setDesignData(prev => ({ ...prev, trees: (prev.trees || []).map(t => selectedIds.has(t.id) || t.id === selectedId ? { ...t, radius: val } : t) }));
+                        }} onMouseUp={() => commitDesign(designData)} />
+                    </div>
+                    <div className="mb-2 flex flex-col gap-1">
+                        <div className="flex justify-between items-center">
+                            <label className="text-xs uppercase text-slate-500">Height</label>
+                            <div className="flex items-center gap-1">
+                                <input type="number" min="1" max="50" step="0.5" value={tree.height} className="w-16 px-1 py-0.5 text-xs border rounded text-right" onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    commitDesign({ ...designData, trees: (designData.trees || []).map(t => selectedIds.has(t.id) || t.id === selectedId ? { ...t, height: val } : t) });
+                                }} />
+                                <span className="text-xs text-slate-500">m</span>
+                            </div>
+                        </div>
+                        <input type="range" min="1" max="50" step="0.5" value={tree.height} className="w-full" onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setDesignData(prev => ({ ...prev, trees: (prev.trees || []).map(t => selectedIds.has(t.id) || t.id === selectedId ? { ...t, height: val } : t) }));
+                        }} onMouseUp={() => commitDesign(designData)} />
+                    </div>
+                </>
             )}
 
             <div className="flex gap-2 mt-4">

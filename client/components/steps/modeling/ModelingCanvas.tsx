@@ -49,7 +49,8 @@ interface ModelingCanvasProps {
     onCanvasMouseDown: (e: React.MouseEvent) => void;
     onCanvasMouseMove: (e: React.MouseEvent) => void;
     onCanvasMouseUp: (e: React.MouseEvent) => void;
-    onObjectClick: (e: React.MouseEvent, type: 'roof' | 'obstruction' | 'tree', id: string) => void;
+    onObjectClick: (id: string, e: React.MouseEvent) => void;
+    onObjectMouseDown: (id: string, type: 'roof' | 'obstruction' | 'tree', e: React.MouseEvent) => void;
     onPointMouseDown: (e: React.MouseEvent, type: 'roof' | 'obstruction', id: string, index: number) => void;
     onSkeletonNodeMouseDown: (e: React.MouseEvent, id: string, nodeIndex: number) => void;
     onSkeletonNodeDoubleClick: (e: React.MouseEvent, id: string, nodeIndex: number) => void;
@@ -71,12 +72,12 @@ export default function ModelingCanvas({
     isDrawing, setIsDrawing, measurementPoints, points, setPoints, previewPoint, snapCursor, snapTarget,
     selectedId, selectedIds, roofHeight3D, currentLayer, activeTool, setActiveTool, editRoofShapeMode,
     setEditRoofShapeMode, onCanvasClick, onCanvasMouseDown, onCanvasMouseMove, onCanvasMouseUp,
-    onObjectClick, onPointMouseDown, onSkeletonNodeMouseDown, onSkeletonNodeDoubleClick,
+    onObjectClick, onObjectMouseDown, onPointMouseDown, onSkeletonNodeMouseDown, onSkeletonNodeDoubleClick,
     onSkeletonEdgeDoubleClick, onEdgeMouseDown, onEdgeDoubleClick, onPointDoubleClick, onContextMenu,
     handleFinishPoly, handleZoomIn, handleZoomOut, lastMousePosRef
 }: ModelingCanvasProps) {
     return (
-        <div className={`flex-1 relative bg-[#E5E5E5] overflow-hidden flex items-center justify-center ${activeTool === 'rotate' && is3D ? (isRotatingView ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-crosshair'}`}>
+        <div className={`flex-1 relative bg-[#E5E5E5] overflow-hidden flex items-center justify-center ${activeTool === 'rotate' || activeTool === 'pan' ? 'cursor-grab' : 'cursor-crosshair'}`}>
             <div ref={canvasRef} className="relative shadow-2xl select-none border border-slate-300 bg-black overflow-hidden" style={{ width: '900px', height: '900px' }}>
                 <WorldViewport
                     ref={worldTransformRef}
@@ -106,6 +107,7 @@ export default function ModelingCanvas({
                     onCanvasMouseMove={onCanvasMouseMove}
                     onCanvasMouseUp={onCanvasMouseUp}
                     onObjectClick={onObjectClick}
+                    onObjectMouseDown={onObjectMouseDown}
                     onPointMouseDown={onPointMouseDown}
                     onSkeletonNodeMouseDown={onSkeletonNodeMouseDown}
                     onSkeletonNodeDoubleClick={onSkeletonNodeDoubleClick}

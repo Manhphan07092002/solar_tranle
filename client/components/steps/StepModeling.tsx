@@ -26,7 +26,6 @@ export default function StepModeling({ designData, setDesignData }: { designData
         rotationAngle, setRotationAngle,
         rotationRef, tiltRef,
         isRotatingView, setIsRotatingView,
-        isMapPanning, setIsMapPanning,
         roofHeight3D, setRoofHeight3D,
         editRoofShapeMode, setEditRoofShapeMode,
         dragState, setDragState,
@@ -55,7 +54,7 @@ export default function StepModeling({ designData, setDesignData }: { designData
         commitDesign, handleUndo, handleRedo, handleCopy, handlePaste,
         handleBulkDelete, renderContextMenu,
         handleCanvasClick, handleCanvasMouseDown, handleCanvasMouseMove, handleCanvasMouseUp,
-        handleObjectClick, handlePointMouseDown, handleSkeletonNodeMouseDown,
+        handleObjectClick, handleObjectMouseDown, handlePointMouseDown, handleSkeletonNodeMouseDown,
         handleSkeletonNodeDoubleClick, handleSkeletonEdgeDoubleClick, handleEdgeMouseDown,
         handleEdgeDoubleClick, handlePointDoubleClick, handleContextMenu,
         handleAutoFixInvalidPoints, handleFinishPoly, handleZoomIn, handleZoomOut
@@ -123,7 +122,9 @@ export default function StepModeling({ designData, setDesignData }: { designData
                 editRoofShapeMode={editRoofShapeMode} setEditRoofShapeMode={setEditRoofShapeMode}
                 onCanvasClick={handleCanvasClick} onCanvasMouseDown={handleCanvasMouseDown}
                 onCanvasMouseMove={handleCanvasMouseMove} onCanvasMouseUp={handleCanvasMouseUp}
-                onObjectClick={handleObjectClick} onPointMouseDown={handlePointMouseDown}
+                onObjectClick={handleObjectClick}
+                onObjectMouseDown={handleObjectMouseDown}
+                onPointMouseDown={handlePointMouseDown}
                 onSkeletonNodeMouseDown={handleSkeletonNodeMouseDown} onSkeletonNodeDoubleClick={handleSkeletonNodeDoubleClick}
                 onSkeletonEdgeDoubleClick={handleSkeletonEdgeDoubleClick} onEdgeMouseDown={handleEdgeMouseDown}
                 onEdgeDoubleClick={handleEdgeDoubleClick} onPointDoubleClick={handlePointDoubleClick}

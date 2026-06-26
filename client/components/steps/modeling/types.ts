@@ -51,7 +51,7 @@ export function historyReducer(state: HistoryState, action: HistoryAction): Hist
 }
 
 export interface DragState {
-    type: 'point' | 'edge' | 'skeletonNode';
+    type: 'point' | 'edge' | 'skeletonNode' | 'object';
     activeId: string;
     activeIndex: number;
     movingPoints: { id: string, type: 'roof' | 'obstruction', index: number }[];

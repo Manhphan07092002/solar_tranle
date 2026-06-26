@@ -41,6 +41,7 @@ interface WorldViewportProps {
     onCanvasMouseMove: (e: React.MouseEvent) => void;
     onCanvasMouseUp: () => void;
     onObjectClick: (id: string, e: React.MouseEvent) => void;
+    onObjectMouseDown?: (id: string, type: 'roof' | 'obstruction' | 'tree', e: React.MouseEvent) => void;
     onPointMouseDown: (id: string, index: number, e: React.MouseEvent) => void;
     onEdgeMouseDown: (id: string, index: number, p1: { x: number, y: number }, p2: { x: number, y: number }, e: React.MouseEvent) => void;
     onEdgeDoubleClick: (id: string, index: number, p1: { x: number, y: number }, p2: { x: number, y: number }, e: React.MouseEvent) => void;
@@ -58,8 +59,8 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
     snapToGrid, smartSnap, showDimensions, layerVisibility = { roofs: true, obstructions: true, trees: true },
     measurementMode, isDrawing, measurementPoints, points, previewPoint, snapCursor, snapTarget,
     selectedId, selectedIds = new Set(), roofHeight3D, currentLayer, activeTool, editRoofShapeMode = false,
-    onCanvasClick, onCanvasMouseDown, onCanvasMouseMove, onCanvasMouseUp, onObjectClick, onPointMouseDown,
-    onEdgeMouseDown, onEdgeDoubleClick, onPointDoubleClick, onSkeletonNodeMouseDown, onSkeletonNodeDoubleClick, onSkeletonEdgeDoubleClick, onContextMenu, children, pvModules
+    onCanvasClick, onCanvasMouseDown, onCanvasMouseMove, onCanvasMouseUp, onObjectClick, onObjectMouseDown,
+    onPointMouseDown, onEdgeMouseDown, onEdgeDoubleClick, onPointDoubleClick, onSkeletonNodeMouseDown, onSkeletonNodeDoubleClick, onSkeletonEdgeDoubleClick, onContextMenu, children, pvModules
 }, ref) => {
 
     // Helper functions moved inside to access viewState props
@@ -479,9 +480,7 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                 className={`w-[900px] h-[900px] absolute top-1/2 left-1/2 outline-none select-none`}
                 style={{
                     transformStyle: 'preserve-3d',
-                    transform: is3D ? `translate(-50%, -50%) rotateX(${tiltAngle}deg) rotateZ(${rotationAngle}deg)` : 'translate(-50%, -50%)',
-                    transition: isRotatingView ? 'none' : 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)',
-                    willChange: isRotatingView ? 'transform' : 'auto'
+                    transition: 'transform 0.5s cubic-bezier(0.25, 1, 0.5, 1)'
                 }}
                 onClick={onCanvasClick}
                 onMouseDown={onCanvasMouseDown}
@@ -507,6 +506,7 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                     }}
                 >
                     <SatelliteMap 
+                        key={is3D ? 'map-3d' : 'map-2d'}
                         center={viewState.center} 
                         zoom={viewState.zoom} 
                         interactive={false} 
@@ -577,8 +577,8 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                     const heightPx = getMetersToPixels(obsHeight);
                     const baseElevationPx = getMetersToPixels(obs.elevation ?? 0);
                     const detailLevel = viewState.zoom < 20 ? 0.5 : 1;
-                    const maxLayers = Math.max(3, Math.floor(10 * detailLevel));
-                    const layers = Math.min(maxLayers, Math.ceil(heightPx / 2));
+                    const maxLayers = Math.max(2, Math.floor(4 * detailLevel));
+                    const layers = Math.min(maxLayers, Math.max(2, Math.ceil(heightPx / 5)));
                     const layerStep = heightPx / Math.max(1, layers);
 
                     return (
@@ -604,8 +604,8 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                     const heightPx = getMetersToPixels(treeHeight);
                     const radiusPx = getMetersToPixels(tree.radius);
                     const detailLevel = viewState.zoom < 20 ? 0.3 : 1;
-                    const maxLayers = Math.max(3, Math.floor(15 * detailLevel));
-                    const crownLayers = Math.min(maxLayers, Math.ceil(heightPx / 2));
+                    const maxLayers = Math.max(2, Math.floor(6 * detailLevel));
+                    const crownLayers = Math.min(maxLayers, Math.max(2, Math.ceil(heightPx / 4)));
                     const trunkHeightPx = heightPx * 0.3;
 
                     return (
@@ -681,6 +681,10 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                                         if (isDrawing) return;
                                         onObjectClick(roof.id, e);
                                     }}
+                                    onMouseDown={(e) => {
+                                        if (isDrawing) return;
+                                        if (onObjectMouseDown) onObjectMouseDown(roof.id, 'roof', e);
+                                    }}
                                     onContextMenu={(e) => {
                                         if (isDrawing) return;
                                         e.preventDefault();
@@ -730,6 +734,10 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                                                 if (isDrawing) return;
                                                 onObjectClick(obs.id, e);
                                             }}
+                                            onMouseDown={(e) => {
+                                                if (isDrawing) return;
+                                                if (onObjectMouseDown) onObjectMouseDown(obs.id, 'obstruction', e);
+                                            }}
                                             onContextMenu={(e) => {
                                                 if (isDrawing) return;
                                                 e.preventDefault();
@@ -770,7 +778,7 @@ const WorldViewport = forwardRef<HTMLDivElement, WorldViewportProps>(({
                         const r = getMetersToPixels(tree.radius);
                         const shadowOffset = (is3D && isSelected) ? Math.max(2, getMetersToPixels(3) * 0.35) : 0;
                         return (
-                            <g key={tree.id} className="pointer-events-auto" onClick={(e) => onObjectClick(tree.id, e)}>
+                            <g key={tree.id} className="pointer-events-auto" onClick={(e) => onObjectClick(tree.id, e)} onMouseDown={(e) => onObjectMouseDown && onObjectMouseDown(tree.id, 'tree', e)}>
                                 {is3D && isSelected && (
                                     <ellipse cx={center.x + shadowOffset} cy={center.y + shadowOffset} rx={Math.max(2, r * 1.1)} ry={Math.max(2, r * 0.75)} fill="rgba(0,0,0,0.25)" className="pointer-events-none" />
                                 )}

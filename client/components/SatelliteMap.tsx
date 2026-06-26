@@ -63,15 +63,19 @@ function SatelliteMap({
   width,
   height
 }: SatelliteMapProps) {
-  // Local state
+  // Local state for interactive mode
   const [mapCenter, setMapCenter] = useState<[number, number]>([center.lat, center.lng]);
   const [mapZoom, setMapZoom] = useState(zoom);
 
-  // Update map when props change
+  // Sync local state when props change
   useEffect(() => {
     setMapCenter([center.lat, center.lng]);
     setMapZoom(zoom);
   }, [center.lat, center.lng, zoom]);
+
+  // Derived active state: strictly follow props if not interactive, avoiding 1-frame lag
+  const activeCenter: [number, number] = interactive ? mapCenter : [center.lat, center.lng];
+  const activeZoom = interactive ? mapZoom : zoom;
 
   const debouncedOnMoveEnd = useDebounce((newCenter: [number, number], newZoom: number) => {
     if (onMoveEnd) onMoveEnd({ lat: newCenter[0], lng: newCenter[1] }, newZoom);
@@ -91,8 +95,8 @@ function SatelliteMap({
       <Map
         width={width}
         height={height}
-        center={mapCenter}
-        zoom={mapZoom}
+        center={activeCenter}
+        zoom={activeZoom}
         onBoundsChanged={handleBoundsChange}
         provider={provider}
         dprs={[1, 2]}
@@ -104,6 +108,7 @@ function SatelliteMap({
         metaWheelZoom={true}
         metaWheelZoomWarning="Dùng CTRL + scroll để zoom"
         animateMaxScreens={15}
+        animate={interactive}
         attribution={false}
         attributionPrefix={false}
       >
